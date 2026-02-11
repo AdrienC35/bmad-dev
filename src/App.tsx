@@ -8,24 +8,11 @@ import MapView from './components/MapView'
 import ProspectCard from './components/ProspectCard'
 import CampaignTracker from './components/CampaignTracker'
 
-export default function App() {
-  const { user, loading: authLoading, signIn, signOut } = useAuth()
+function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; userEmail?: string }) {
   const { prospects, actions, loading, addAction } = useProspects()
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
-        Chargement...
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <Login onLogin={signIn} />
-  }
-
   return (
-    <Layout onSignOut={signOut} userEmail={user.email}>
+    <Layout onSignOut={onSignOut} userEmail={userEmail}>
       <Routes>
         <Route
           path="/"
@@ -59,4 +46,22 @@ export default function App() {
       </Routes>
     </Layout>
   )
+}
+
+export default function App() {
+  const { user, loading: authLoading, signIn, signOut } = useAuth()
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        Chargement...
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Login onLogin={signIn} />
+  }
+
+  return <AuthenticatedApp onSignOut={signOut} userEmail={user.email} />
 }
