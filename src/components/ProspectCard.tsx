@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Phone, Mail, MapPin, TreePine } from 'lucide-react'
 import type { ProspectWithStatus, Action, ActionType } from '../types'
@@ -8,6 +8,7 @@ interface Props {
   prospects: ProspectWithStatus[]
   actions: Action[]
   addAction: (prospectId: number, type: ActionType, notes?: string) => Promise<unknown>
+  loading: boolean
 }
 
 const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] = [
@@ -18,15 +19,18 @@ const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] =
   { type: 'recrute', label: 'Recruté', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 ]
 
-export default function ProspectCard({ prospects, actions, addAction }: Props) {
+export default function ProspectCard({ prospects, actions, addAction, loading }: Props) {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [actionLoading, setActionLoading] = useState(false)
 
   const prospect = prospects.find((p) => p.id === Number(id))
   const prospectActions = useMemo(
     () => actions.filter((a) => a.prospect_id === Number(id)),
     [actions, id]
   )
+
+  if (loading) return <div className="text-center py-12 text-gray-400">Chargement...</div>
 
   if (!prospect) {
     return (
@@ -37,13 +41,22 @@ export default function ProspectCard({ prospects, actions, addAction }: Props) {
     )
   }
 
+  async function handleAction(type: ActionType) {
+    if (type === 'refus' || type === 'recrute') {
+      if (!confirm(`Confirmer "${ACTION_LABELS[type]}" ?`)) return
+    }
+    setActionLoading(true)
+    await addAction(prospect!.id, type)
+    setActionLoading(false)
+  }
+
   const breakdown = decomposeScore(prospect)
   const breakdownTotal = breakdown.reduce((s, c) => s + c.points, 0)
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
       {/* Header */}
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+      <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
         <ArrowLeft size={16} /> Retour
       </button>
 
@@ -148,8 +161,9 @@ export default function ProspectCard({ prospects, actions, addAction }: Props) {
           {ACTION_BUTTONS.map((btn) => (
             <button
               key={btn.type}
-              onClick={() => addAction(prospect.id, btn.type)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${btn.className}`}
+              disabled={actionLoading}
+              onClick={() => handleAction(btn.type)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${btn.className}`}
             >
               {btn.label}
             </button>

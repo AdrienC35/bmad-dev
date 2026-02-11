@@ -9,21 +9,25 @@ interface Props {
   loading: boolean
 }
 
+const iconCache = new Map<string, L.DivIcon>()
 function markerIcon(score: number): L.DivIcon {
   const color = score >= 70 ? '#16a34a' : score >= 50 ? '#d97706' : '#dc2626'
-  return L.divIcon({
-    className: '',
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
-    html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>`,
-  })
+  if (!iconCache.has(color)) {
+    iconCache.set(color, L.divIcon({
+      className: '',
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
+      html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>`,
+    }))
+  }
+  return iconCache.get(color)!
 }
 
 export default function MapView({ prospects, loading }: Props) {
   const navigate = useNavigate()
 
   const geoProspects = useMemo(
-    () => prospects.filter((p) => p.latitude && p.longitude),
+    () => prospects.filter((p) => p.latitude != null && p.longitude != null),
     [prospects]
   )
 

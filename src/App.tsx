@@ -29,6 +29,7 @@ function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; use
               prospects={prospects}
               actions={actions}
               addAction={addAction}
+              loading={loading}
             />
           }
         />

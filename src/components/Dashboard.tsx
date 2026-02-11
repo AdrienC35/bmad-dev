@@ -41,8 +41,11 @@ export default function Dashboard({ prospects, loading }: Props) {
         return true
       })
       .sort((a, b) => {
-        const av = a[sortKey] ?? ''
-        const bv = b[sortKey] ?? ''
+        const av = a[sortKey]
+        const bv = b[sortKey]
+        if (av == null && bv == null) return 0
+        if (av == null) return sortAsc ? -1 : 1
+        if (bv == null) return sortAsc ? 1 : -1
         if (av < bv) return sortAsc ? -1 : 1
         if (av > bv) return sortAsc ? 1 : -1
         return 0
@@ -50,17 +53,20 @@ export default function Dashboard({ prospects, loading }: Props) {
   }, [prospects, search, filterDept, filterZone, filterCert, filterScoreMin, sortKey, sortAsc])
 
   // KPIs
-  const totalSau = filtered.reduce((s, p) => s + (p.sau_estimee_ha ?? 0), 0)
-  const pctCert = filtered.length
-    ? Math.round(
-        (filtered.filter((p) => p.certifications && p.certifications !== '0.0' && p.certifications !== '0').length /
-          filtered.length) *
-          100
-      )
-    : 0
-  const avgScore = filtered.length
-    ? Math.round(filtered.reduce((s, p) => s + p.score_pertinence, 0) / filtered.length)
-    : 0
+  const { totalSau, pctCert, avgScore } = useMemo(() => {
+    const totalSau = filtered.reduce((s, p) => s + (p.sau_estimee_ha ?? 0), 0)
+    const pctCert = filtered.length
+      ? Math.round(
+          (filtered.filter((p) => p.certifications && p.certifications !== '0.0' && p.certifications !== '0').length /
+            filtered.length) *
+            100
+        )
+      : 0
+    const avgScore = filtered.length
+      ? Math.round(filtered.reduce((s, p) => s + p.score_pertinence, 0) / filtered.length)
+      : 0
+    return { totalSau, pctCert, avgScore }
+  }, [filtered])
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc(!sortAsc)
@@ -68,6 +74,12 @@ export default function Dashboard({ prospects, loading }: Props) {
       setSortKey(key)
       setSortAsc(false)
     }
+  }
+
+  function escapeCsv(value: string): string {
+    let escaped = value.replace(/"/g, '""')
+    if (/^[=+\-@\t\r]/.test(escaped)) escaped = "'" + escaped
+    return `"${escaped}"`
   }
 
   function exportCsv() {
@@ -83,8 +95,8 @@ export default function Dashboard({ prospects, loading }: Props) {
       ACTION_LABELS[p.statut],
       p.telephone_elevage ?? p.telephone_domicile ?? '',
     ])
-    const csv = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const csv = [header.map(h => escapeCsv(h)), ...rows.map(r => r.map(c => escapeCsv(c)))].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

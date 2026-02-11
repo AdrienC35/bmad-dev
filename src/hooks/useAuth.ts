@@ -7,14 +7,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+    supabase.auth.getSession()
 
     return () => subscription.unsubscribe()
   }, [])
@@ -25,7 +22,8 @@ export function useAuth() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) console.error('Sign out failed:', error)
   }
 
   return { user, loading, signIn, signOut }

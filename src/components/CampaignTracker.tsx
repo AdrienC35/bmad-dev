@@ -81,7 +81,7 @@ export default function CampaignTracker({ prospects, actions, loading }: Props) 
         {/* Barre visuelle */}
         <div className="mt-4 flex rounded-full overflow-hidden h-3">
           {STATUT_ORDER.filter((s) => (stats[s] ?? 0) > 0).map((statut) => {
-            const pct = ((stats[statut] ?? 0) / prospects.length) * 100
+            const pct = prospects.length > 0 ? ((stats[statut] ?? 0) / prospects.length) * 100 : 0
             const colors: Record<string, string> = {
               recrute: 'bg-emerald-500',
               interesse: 'bg-amber-400',

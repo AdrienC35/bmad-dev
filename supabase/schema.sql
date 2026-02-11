@@ -50,33 +50,18 @@ CREATE INDEX idx_actions_type ON actions(type);
 
 -- ============================================================
 -- Row Level Security (RLS)
--- MODE PROTO : acces ouvert (anon + authenticated)
--- MODE DSI   : remplacer anon par authenticated + roles Keycloak
+-- Acces restreint aux utilisateurs authentifies uniquement
 -- ============================================================
 
 ALTER TABLE prospects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE actions ENABLE ROW LEVEL SECURITY;
 
--- Prospects : lecture pour tous (anon = proto, authenticated = DSI)
-CREATE POLICY "prospects_select_anon" ON prospects
-  FOR SELECT TO anon USING (true);
+-- Prospects : lecture seule pour authenticated (pas d'insert/update/delete)
 CREATE POLICY "prospects_select_auth" ON prospects
   FOR SELECT TO authenticated USING (true);
-CREATE POLICY "prospects_insert_anon" ON prospects
-  FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "prospects_insert_auth" ON prospects
-  FOR INSERT TO authenticated WITH CHECK (true);
 
--- Actions : lecture et ecriture pour tous
-CREATE POLICY "actions_select_anon" ON actions
-  FOR SELECT TO anon USING (true);
+-- Actions : lecture et insertion pour authenticated
 CREATE POLICY "actions_select_auth" ON actions
   FOR SELECT TO authenticated USING (true);
-CREATE POLICY "actions_insert_anon" ON actions
-  FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "actions_insert_auth" ON actions
   FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "actions_update_anon" ON actions
-  FOR UPDATE TO anon USING (true);
-CREATE POLICY "actions_update_auth" ON actions
-  FOR UPDATE TO authenticated USING (true);

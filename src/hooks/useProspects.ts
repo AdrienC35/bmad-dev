@@ -9,18 +9,33 @@ export function useProspects() {
 
   async function fetchAll() {
     setLoading(true)
-    const [{ data: pData }, { data: aData }] = await Promise.all([
+    const [prospectsRes, actionsRes] = await Promise.all([
       supabase.from('prospects').select('*').order('score_pertinence', { ascending: false }),
       supabase.from('actions').select('*').order('created_at', { ascending: false }),
     ])
 
-    const prospectsList = (pData ?? []) as Prospect[]
-    const actionsList = (aData ?? []) as Action[]
+    if (prospectsRes.error) {
+      console.error('Failed to fetch prospects:', prospectsRes.error)
+      setLoading(false)
+      return
+    }
+    if (actionsRes.error) {
+      console.error('Failed to fetch actions:', actionsRes.error)
+    }
+
+    const prospectsList = (prospectsRes.data ?? []) as Prospect[]
+    const actionsList = (actionsRes.data ?? []) as Action[]
     setActions(actionsList)
 
+    const actionsByProspect = new Map<number, Action[]>()
+    actionsList.forEach((a) => {
+      const arr = actionsByProspect.get(a.prospect_id) ?? []
+      arr.push(a)
+      actionsByProspect.set(a.prospect_id, arr)
+    })
+
     const enriched: ProspectWithStatus[] = prospectsList.map((p) => {
-      const prospectActions = actionsList.filter((a) => a.prospect_id === p.id)
-      const derniere = prospectActions[0] ?? null
+      const derniere = (actionsByProspect.get(p.id) ?? [])[0] ?? null
       return {
         ...p,
         statut: derniere ? derniere.type : ('en_attente' as const),
@@ -33,10 +48,12 @@ export function useProspects() {
   }
 
   async function addAction(prospectId: number, type: ActionType, notes?: string) {
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('actions').insert({
       prospect_id: prospectId,
       type,
       notes: notes ?? null,
+      created_by: user?.email ?? null,
     })
     if (!error) await fetchAll()
     return error
