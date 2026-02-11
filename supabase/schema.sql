@@ -57,12 +57,22 @@ ALTER TABLE prospects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE actions ENABLE ROW LEVEL SECURITY;
 
 -- Prospects : lecture seule pour authenticated (pas d'insert/update/delete)
+-- NOTE: USING(true) = tout utilisateur authenticated voit tous les prospects.
+-- Choix delibere pour un prototype mono-utilisateur (Anne, seule utilisatrice).
+-- A durcir si multi-utilisateur : USING(auth.uid() = assigned_to) + colonne assigned_to.
 CREATE POLICY "prospects_select_auth" ON prospects
   FOR SELECT TO authenticated USING (true);
 
 -- Actions : lecture et insertion pour authenticated
 CREATE POLICY "actions_select_auth" ON actions
   FOR SELECT TO authenticated USING (true);
+-- DETTE TECHNIQUE: created_by est set par le client (app JS).
+-- Un trigger BEFORE INSERT devrait forcer created_by = auth.jwt()->>'email' cote serveur
+-- pour empecher toute falsification. Non deploye car le trigger doit etre cree dans Supabase SQL Editor.
+-- Exemple:
+--   CREATE OR REPLACE FUNCTION set_created_by() RETURNS TRIGGER AS $$
+--   BEGIN NEW.created_by := auth.jwt()->>'email'; RETURN NEW; END; $$ LANGUAGE plpgsql;
+--   CREATE TRIGGER trg_set_created_by BEFORE INSERT ON actions FOR EACH ROW EXECUTE FUNCTION set_created_by();
 CREATE POLICY "actions_insert_auth" ON actions
   FOR INSERT TO authenticated WITH CHECK (created_by = auth.jwt()->>'email');
 

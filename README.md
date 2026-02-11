@@ -25,13 +25,13 @@ Sales prospecting tool for the Bois & Bocage division of Cooperl: hedge diagnost
 | Bundler | Vite | 6.0.3 |
 | Styles | Tailwind CSS | 3.4.15 |
 | Icons | lucide-react | 0.460.0 |
-| Maps | Leaflet + react-leaflet | 1.9.4 / 4.2.1 |
+| Maps | Leaflet + react-leaflet + react-leaflet-cluster | 1.9.4 / 4.2.1 / 4.0.0 |
 | Routing | react-router-dom | 6.28.0 |
 | BaaS / API | Supabase (PostgREST) | supabase-js 2.49.1 |
 | Database | PostgreSQL (via Supabase) | -- |
 | Auth | Supabase Auth (prototype) / Keycloak (target DSI) | -- |
 
-State management uses React hooks only (no external state library). No custom backend server.
+State management uses React Context (`ProspectsContext`) and hooks only (no external state library). No custom backend server.
 
 ---
 
@@ -63,7 +63,7 @@ The application is a purely static SPA. There is no Express server, no custom ba
 bois-bocage-app/
 |-- index.html                  # HTML entry point
 |-- package.json
-|-- vite.config.ts
+|-- vite.config.ts              # Vite config (base path: /bmad-dev/ in prod)
 |-- tsconfig.json
 |-- tailwind.config.js
 |-- postcss.config.js
@@ -81,17 +81,19 @@ bois-bocage-app/
     |-- hooks/
     |   |-- useAuth.ts          # Auth hook (session, signIn, signOut)
     |   `-- useProspects.ts     # Data hook (fetch prospects + actions, CRUD)
+    |-- contexts/
+    |   `-- ProspectsContext.tsx # React Context provider for prospect data
     `-- components/
         |-- Login.tsx           # Login screen (email/password form)
         |-- Layout.tsx          # Header bar + tab navigation
         |-- Dashboard.tsx       # Pipeline view: KPIs + table + filters + CSV export
-        |-- MapView.tsx         # Leaflet map with colored markers
+        |-- MapView.tsx         # Leaflet map with colored markers + clustering
         |-- ProspectCard.tsx    # Prospect detail card + actions + score breakdown
         |-- CampaignTracker.tsx # Campaign tracking: goal gauge + pipeline + history
         `-- Limitations.tsx     # Feature limitations page (server-side features roadmap)
 ```
 
-14 source files total (8 components, 2 custom hooks, 1 lib, 1 types, 1 CSS, 1 entry point).
+16 source files total (7 components, 2 custom hooks, 1 context, 1 lib, 1 types, 1 CSS, 1 entry point, 1 app root, 1 env declaration).
 
 ### Data Flow
 
@@ -102,10 +104,13 @@ CSV from Dataiku (bb_prospects_top200.csv)
 PostgreSQL table "prospects" (200 rows)
     |
     v  (PostgREST auto-generated API)
-useProspects hook (parallel fetch: prospects + actions)
+useProspects hook (parallel fetch: prospects + actions with AbortController)
     |
     v  (enrichment: derive status from latest action)
-ProspectWithStatus[] passed via props to all views
+ProspectsContext.Provider
+    |
+    v  (consumed via useProspectsContext())
+All views (Dashboard, MapView, ProspectCard, CampaignTracker)
 ```
 
 ### Routes
@@ -282,7 +287,7 @@ There is no migration framework. Schema changes are applied by running SQL direc
 ## Auth Flow
 
 1. User opens the app.
-2. `useAuth` checks for an existing Supabase session via `getSession()` and subscribes to `onAuthStateChange`.
+2. `useAuth` subscribes to `onAuthStateChange` to detect session state.
 3. If not authenticated: the `Login` component is rendered.
 4. User enters email + password.
 5. `signInWithPassword` sends credentials to Supabase Auth.
@@ -307,6 +312,8 @@ npm run build
 ```
 
 The `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables must be set at build time (they are inlined into the JS bundle). Output is in the `dist/` folder -- a pure static site (HTML + JS + CSS) deployable on any static hosting (GitHub Pages, Netlify, Vercel, Nginx, S3+CloudFront).
+
+The Vite config uses base path `/bmad-dev/` in production mode (see `vite.config.ts`).
 
 ### Target -- DSI Environment (February 21, 2026)
 
@@ -341,7 +348,7 @@ For RLS migration: remove any `anon` policies, keep and tighten `authenticated` 
 
 ### `App.tsx` -- Root Router and Auth Guard
 
-Uses `useAuth` to determine authentication state. Renders `Login` if unauthenticated, otherwise renders `AuthenticatedApp` containing `Layout` and `Routes`. `useProspects` is instantiated once inside `AuthenticatedApp` and data is passed to child components via props.
+Uses `useAuth` to determine authentication state. Renders `Login` if unauthenticated, otherwise renders `AuthenticatedApp` containing `ProspectsProvider`, `Layout` and `Routes`. Data is shared via `ProspectsContext`.
 
 ### `Login.tsx` -- Login Screen
 
@@ -356,15 +363,15 @@ Green header bar (`bg-cooperl-700`) with logo, title, user email, and sign-out b
 - **KPIs** (4 cards): prospect count, total SAU, certification %, average score.
 - **Filters**: text search, department dropdown, zone dropdown, certification checkbox, minimum score.
 - **Table**: sortable columns (name, dept, zone, SAU, score), color-coded score/status badges, row click navigates to prospect detail.
-- **CSV Export**: exports currently filtered prospects.
+- **CSV Export**: exports currently filtered prospects with formula injection protection (`escapeCsv`).
 
 ### `MapView.tsx` -- Map View
 
-Leaflet map centered on Brittany (lat 48.1, lng -2.8, zoom 7). OpenStreetMap tiles. Color-coded circle markers (green >= 70, orange 50-69, red < 50). Click popup with prospect summary and link to detail card.
+Leaflet map centered on Brittany (lat 48.1, lng -2.8, zoom 7). OpenStreetMap tiles. Color-coded circle markers (green >= 70, orange 50-69, red < 50) with `MarkerClusterGroup`. Click popup with prospect summary and link to detail card.
 
 ### `ProspectCard.tsx` -- Prospect Detail
 
-Header with name, numero_tiers, zone, status badge. Contact info with clickable `tel:` and `mailto:` links. Farm data (SAU, tonnage, certifications, loyalty). Score decomposition (5 criteria with points). 5 action buttons (appele, interesse, rappeler, refus, recrute). Chronological action history.
+Header with name, numero_tiers, zone, status badge. Contact info with clickable `tel:` and `mailto:` links. Farm data (SAU, tonnage, certifications, loyalty). Score decomposition (5 criteria with points). 5 action buttons (appele, interesse, rappeler, refus, recrute) with confirmation modal for destructive actions (refus, recrute). Chronological action history.
 
 ### `CampaignTracker.tsx` -- Campaign Tracking
 
@@ -380,14 +387,20 @@ Lists 7 features that require server-side infrastructure and are not available i
 
 | Hook | Returns | Description |
 |------|---------|-------------|
-| `useAuth` | `{ user, loading, signIn, signOut }` | Session management via `getSession()` + `onAuthStateChange` |
-| `useProspects` | `{ prospects, actions, loading, refetch, addAction }` | Parallel fetch of prospects (sorted by score DESC) and actions (sorted by date DESC), enrichment with derived status |
+| `useAuth` | `{ user, loading, signIn, signOut }` | Session management via `onAuthStateChange` |
+| `useProspects` | `{ prospects, actions, loading, refetch, addAction }` | Parallel fetch of prospects (sorted by score DESC) and actions (sorted by date DESC, limit 1000), enrichment with derived status, `AbortController` support |
+
+### Context
+
+| Context | Provider | Consumer | Description |
+|---------|----------|----------|-------------|
+| `ProspectsContext` | `ProspectsProvider` | `useProspectsContext()` | Wraps `useProspects` and shares prospect/action data to all child components |
 
 ### Types (`src/types/index.ts`)
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `Prospect` | interface | 22 fields matching `prospects` table columns |
+| `Prospect` | interface | 23 fields matching `prospects` table columns |
 | `ActionType` | type union | `'appele' \| 'interesse' \| 'refus' \| 'rappeler' \| 'recrute'` |
 | `Action` | interface | 6 fields matching `actions` table columns |
 | `ProspectWithStatus` | interface | Extends `Prospect` with `statut` and `derniere_action` |
@@ -419,13 +432,13 @@ Default view showing 200 prospects sorted by relevance score.
 
 ### Map Screen
 
-Displays geolocated prospects as colored markers on a Leaflet map. Green (score >= 70), orange (50-69), red (< 50). Click a marker for a popup with summary and "Voir la fiche" link.
+Displays geolocated prospects as colored markers on a Leaflet map with clustering. Green (score >= 70), orange (50-69), red (< 50). Click a marker for a popup with summary and "Voir la fiche" link.
 
 ### Prospect Detail Screen
 
 Accessible by clicking a prospect from Pipeline or Map. Shows contact info (clickable phone/email), farm data, score decomposition, action buttons, and action history.
 
-**Recording an action**: click one of the 5 action buttons (Appele, Interesse, Rappeler, Refus, Recrute). The action is saved immediately with timestamp. Status updates across the app.
+**Recording an action**: click one of the 5 action buttons (Appele, Interesse, Rappeler, Refus, Recrute). For Refus and Recrute, a confirmation modal is shown. The action is saved immediately with timestamp. Status updates across the app.
 
 ### Campaign Tracking Screen
 
@@ -443,23 +456,25 @@ Progress gauge toward 40 annual recruitments. Pipeline breakdown by status (6 ca
 | Single service | Bois & Bocage only. No integration with RSE, GTE-v, or Collecte. |
 | Prototype auth | Supabase Auth simulates Keycloak SSO. No granular roles. |
 | No table pagination | All 200 prospects are loaded at once. No server-side pagination. |
-| No test suite | 0 test files. No unit, integration, or e2e tests. |
+| No test suite | 0 test files. No unit, integration, or e2e tests. See `TESTS.md` for the planned test matrix. |
 
 ---
 
 ## Last Audit
 
 **Date**: 2026-02-11
-**Score**: ~20/100 (Grade D)
-**Status**: CRIT + HIGH fixes in progress
+**Findings**: 35 total (3 CRITICAL, 8 HIGH, 14 MEDIUM, 10 LOW)
+**Test coverage**: 0%
 
 ### Summary of Findings
 
 | Severity | Count | Key Findings |
 |----------|-------|--------------|
-| CRITICAL | 2 | RLS INSERT policy on `actions` bypassable when `userEmail` is undefined; no UPDATE/DELETE policies on `actions` table |
-| HIGH | 8 | No `AbortController` on fetches, full refetch on each insert, auth race condition on `getSession`, no pagination, silent error on actions fetch, unconditional data fetch before auth resolves, PostgREST schema exposure via error responses, no error feedback to user |
-| MEDIUM | 17 | `SELECT *` fetches all PII columns, `USING(true)` on prospects allows any authenticated user full read, props drilling through component tree, no map marker clustering, non-null assertions on route params, `confirm()` blocks UI thread, among others |
-| LOW | 14 | JWT stored in `localStorage`, no HTTP security headers (CSP, HSTS), hardcoded base path, no list virtualization, minor accessibility gaps |
+| CRITICAL | 3 | Credentials in cleartext (`.secret`); RLS `USING(true)` too permissive for multi-user; `created_by` set client-side (spoofable) |
+| HIGH | 8 | No pagination; auth race condition on mount; session expiry not handled; full refetch on every action insert; unsafe type cast on Supabase responses; no user-facing error state; no rate limiting on action inserts; silent error swallowing on actions fetch |
+| MEDIUM | 14 | Context causes full re-render tree; map remounts on tab switch; CSV export logic embedded in component; stale closure risk in callbacks; no list virtualization for 200+ rows; `confirm()` blocks UI thread; `SELECT *` over PII columns; non-null assertions on route params; hardcoded Brittany center coordinates; no loading skeleton |
+| LOW | 10 | Non-null assertions (`!`) on icon cache; hardcoded base path in vite.config.ts; missing `BrowserRouter basename`; JWT in localStorage; no HTTP security headers (CSP, HSTS); minor accessibility gaps (missing aria labels); no favicon; inconsistent French/English in code comments |
 
-**Total**: 41 findings (38 unique after deduplication).
+### Planned Test Matrix
+
+See [`TESTS.md`](./TESTS.md) for the complete 90-test matrix covering auth, CRUD, RLS, UI, performance, and error handling.

@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { TreePine, LogIn } from 'lucide-react'
 
 import type { AuthError } from '@supabase/supabase-js'
+
+const MAX_ATTEMPTS = 3
+const LOCKOUT_MS = 30_000
 
 interface Props {
   onLogin: (email: string, password: string) => Promise<AuthError | null>
@@ -12,13 +15,32 @@ export default function Login({ onLogin }: Props) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const failCount = useRef(0)
+  const lockedUntil = useRef(0)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const now = Date.now()
+    if (now < lockedUntil.current) {
+      const secs = Math.ceil((lockedUntil.current - now) / 1000)
+      setError(`Trop de tentatives. Reessayez dans ${secs}s.`)
+      return
+    }
     setError('')
     setSubmitting(true)
     const err = await onLogin(email, password)
-    if (err) setError('Email ou mot de passe incorrect')
+    if (err) {
+      failCount.current += 1
+      if (failCount.current >= MAX_ATTEMPTS) {
+        lockedUntil.current = Date.now() + LOCKOUT_MS
+        failCount.current = 0
+        setError(`Trop de tentatives. Reessayez dans ${LOCKOUT_MS / 1000}s.`)
+      } else {
+        setError('Email ou mot de passe incorrect')
+      }
+    } else {
+      failCount.current = 0
+    }
     setSubmitting(false)
   }
 

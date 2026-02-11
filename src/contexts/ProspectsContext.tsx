@@ -6,6 +6,8 @@ interface ProspectsContextValue {
   prospects: ProspectWithStatus[]
   actions: Action[]
   loading: boolean
+  error: string | null
+  refetch: (silent?: boolean) => Promise<void>
   addAction: (prospectId: number, type: ActionType, notes?: string) => Promise<unknown>
 }
 

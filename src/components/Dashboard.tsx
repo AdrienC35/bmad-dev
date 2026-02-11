@@ -7,7 +7,7 @@ import { useProspectsContext } from '../contexts/ProspectsContext'
 type SortKey = 'score_pertinence' | 'sau_estimee_ha' | 'nom' | 'departement' | 'zone_geographique'
 
 export default function Dashboard() {
-  const { prospects, loading } = useProspectsContext()
+  const { prospects, loading, error, refetch } = useProspectsContext()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('score_pertinence')
@@ -105,6 +105,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">{error}</span>
+          <button onClick={() => refetch()} className="text-sm font-medium text-red-700 hover:text-red-900 underline ml-4">Reessayer</button>
+        </div>
+      )}
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard icon={<Target size={20} />} label="Prospects" value={String(filtered.length)} color="text-cooperl-600" />

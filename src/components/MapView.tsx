@@ -23,7 +23,7 @@ function markerIcon(score: number): L.DivIcon {
 }
 
 export default function MapView() {
-  const { prospects, loading } = useProspectsContext()
+  const { prospects, loading, error, refetch } = useProspectsContext()
   const navigate = useNavigate()
 
   const geoProspects = useMemo(
@@ -35,6 +35,12 @@ export default function MapView() {
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">{error}</span>
+          <button onClick={() => refetch()} className="text-sm font-medium text-red-700 hover:text-red-900 underline ml-4">Reessayer</button>
+        </div>
+      )}
       <div className="flex items-center gap-4 text-sm text-gray-600">
         <span>{geoProspects.length} prospects géolocalisés</span>
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-emerald-600" /> 70+</span>
