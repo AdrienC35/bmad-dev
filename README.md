@@ -31,7 +31,7 @@ Sales prospecting tool for the Bois & Bocage division of Cooperl: hedge diagnost
 | Database | PostgreSQL (via Supabase) | -- |
 | Auth | Supabase Auth (prototype) / Keycloak (target DSI) | -- |
 
-State management uses React Context only (no external state library). No custom backend server.
+State management uses React hooks only (no external state library). No custom backend server.
 
 ---
 
@@ -87,8 +87,11 @@ bois-bocage-app/
         |-- Dashboard.tsx       # Pipeline view: KPIs + table + filters + CSV export
         |-- MapView.tsx         # Leaflet map with colored markers
         |-- ProspectCard.tsx    # Prospect detail card + actions + score breakdown
-        `-- CampaignTracker.tsx # Campaign tracking: goal gauge + pipeline + history
+        |-- CampaignTracker.tsx # Campaign tracking: goal gauge + pipeline + history
+        `-- Limitations.tsx     # Feature limitations page (server-side features roadmap)
 ```
+
+14 source files total (8 components, 2 custom hooks, 1 lib, 1 types, 1 CSS, 1 entry point).
 
 ### Data Flow
 
@@ -113,6 +116,7 @@ ProspectWithStatus[] passed via props to all views
 | `/carte` | `MapView` | Map view |
 | `/prospect/:id` | `ProspectCard` | Prospect detail |
 | `/suivi` | `CampaignTracker` | Campaign tracking |
+| `/limitations` | `Limitations` | Feature limitations and roadmap |
 | `*` | Redirect to `/` | Fallback |
 
 ---
@@ -245,7 +249,7 @@ prospects (1) ---< actions (N)
 
 ### RLS Policies (Row Level Security)
 
-Both tables have RLS enabled. Current policies as defined in `schema.sql`:
+Both tables have RLS enabled. Anonymous access is explicitly revoked (`REVOKE ALL ON ... FROM anon`). Current policies as defined in `schema.sql`:
 
 | Policy | Table | Operation | Role | Condition |
 |--------|-------|-----------|------|-----------|
@@ -253,7 +257,7 @@ Both tables have RLS enabled. Current policies as defined in `schema.sql`:
 | `actions_select_auth` | actions | SELECT | authenticated | `true` |
 | `actions_insert_auth` | actions | INSERT | authenticated | `created_by = auth.jwt()->>'email'` |
 
-No policies exist for `anon`, `UPDATE`, or `DELETE` -- those operations are denied by default when RLS is enabled. The `prospects` table is read-only from the application perspective (data is imported via Supabase Table Editor or direct SQL).
+No policies exist for `UPDATE` or `DELETE` on either table -- those operations are denied by default when RLS is enabled. The `prospects` table is read-only from the application perspective (data is imported via Supabase Table Editor or direct SQL).
 
 ### Scoring Formula
 
@@ -294,15 +298,15 @@ In the target DSI environment, Keycloak will replace Supabase Auth. The JWT will
 
 ## Deployment
 
-### Current -- Static SPA
+### Current -- GitHub Pages via `gh-pages`
 
-The app builds to a static `dist/` folder deployable on any static hosting (GitHub Pages, Netlify, Vercel, Nginx, S3+CloudFront).
+The project includes `gh-pages` (v6.3.0) as a dev dependency for static deployment to GitHub Pages.
 
 ```bash
 npm run build
 ```
 
-The `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables must be set at build time (they are inlined into the JS bundle).
+The `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables must be set at build time (they are inlined into the JS bundle). Output is in the `dist/` folder -- a pure static site (HTML + JS + CSS) deployable on any static hosting (GitHub Pages, Netlify, Vercel, Nginx, S3+CloudFront).
 
 ### Target -- DSI Environment (February 21, 2026)
 
@@ -345,7 +349,7 @@ Email/password form with HTML validation. Displays "Email ou mot de passe incorr
 
 ### `Layout.tsx` -- Page Structure and Navigation
 
-Green header bar (`bg-cooperl-700`) with logo, title, user email, and sign-out button. Tab navigation with 3 links: Pipeline (`/`), Carte (`/carte`), Suivi (`/suivi`). Active tab is underlined in green.
+Green header bar (`bg-cooperl-700`) with logo, title, user email, and sign-out button. Tab navigation with 4 links: Pipeline (`/`), Carte (`/carte`), Suivi (`/suivi`), Limitations (`/limitations`). Active tab is underlined in green.
 
 ### `Dashboard.tsx` -- Prospect Pipeline
 
@@ -367,6 +371,10 @@ Header with name, numero_tiers, zone, status badge. Contact info with clickable 
 - **Goal Gauge**: progress bar toward 40 annual recruitments.
 - **Pipeline by Status**: 6 cards (recrute, interesse, appele, rappeler, refus, en_attente) with counts and stacked progress bar.
 - **Recent Actions**: last 20 actions across all prospects, clickable to navigate to prospect.
+
+### `Limitations.tsx` -- Feature Limitations
+
+Lists 7 features that require server-side infrastructure and are not available in the current static SPA deployment: automated reminders, PDF export, bulk data import, inter-user notifications, role-based access, SI synchronization, and advanced reporting.
 
 ### Hooks
 
@@ -442,14 +450,16 @@ Progress gauge toward 40 annual recruitments. Pipeline breakdown by status (6 ca
 ## Last Audit
 
 **Date**: 2026-02-11
+**Score**: ~20/100 (Grade D)
+**Status**: CRIT + HIGH fixes in progress
 
-**Summary of findings**:
+### Summary of Findings
 
 | Severity | Count | Key Findings |
 |----------|-------|--------------|
-| CRITICAL | 3 | No sign-up control (users created in dashboard only), INSERT RLS policy on actions lacks ownership validation beyond email match, no explicit anonymous deny policies |
-| HIGH | 8 | No AbortController on fetches, no pagination (full table load), full refetch on every action, `getSession` not awaited, `getUser` called on every action, no table pagination UI, missing security headers |
-| MEDIUM | 17 | JWT in localStorage, client-only route guards, PII held in memory, no CSP headers, no marker clustering on map, various code quality items |
-| LOW | 11 | Missing HTTP security headers, style optimizations, minor accessibility gaps |
+| CRITICAL | 2 | RLS INSERT policy on `actions` bypassable when `userEmail` is undefined; no UPDATE/DELETE policies on `actions` table |
+| HIGH | 8 | No `AbortController` on fetches, full refetch on each insert, auth race condition on `getSession`, no pagination, silent error on actions fetch, unconditional data fetch before auth resolves, PostgREST schema exposure via error responses, no error feedback to user |
+| MEDIUM | 17 | `SELECT *` fetches all PII columns, `USING(true)` on prospects allows any authenticated user full read, props drilling through component tree, no map marker clustering, non-null assertions on route params, `confirm()` blocks UI thread, among others |
+| LOW | 14 | JWT stored in `localStorage`, no HTTP security headers (CSP, HSTS), hardcoded base path, no list virtualization, minor accessibility gaps |
 
-Total issues: **39** (3 critical, 8 high, 17 medium, 11 low).
+**Total**: 41 findings (38 unique after deduplication).

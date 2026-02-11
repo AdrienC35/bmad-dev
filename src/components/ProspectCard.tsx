@@ -7,9 +7,8 @@ import { ACTION_LABELS, ACTION_COLORS, decomposeScore } from '../types'
 interface Props {
   prospects: ProspectWithStatus[]
   actions: Action[]
-  addAction: (prospectId: number, type: ActionType, notes?: string, userEmail?: string) => Promise<unknown>
+  addAction: (prospectId: number, type: ActionType, notes?: string) => Promise<unknown>
   loading: boolean
-  userEmail?: string
 }
 
 const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] = [
@@ -20,7 +19,7 @@ const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] =
   { type: 'recrute', label: 'Recruté', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 ]
 
-export default function ProspectCard({ prospects, actions, addAction, loading, userEmail }: Props) {
+export default function ProspectCard({ prospects, actions, addAction, loading }: Props) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [actionLoading, setActionLoading] = useState(false)
@@ -43,12 +42,16 @@ export default function ProspectCard({ prospects, actions, addAction, loading, u
   }
 
   async function handleAction(type: ActionType) {
+    if (!prospect) return
     if (type === 'refus' || type === 'recrute') {
       if (!confirm(`Confirmer "${ACTION_LABELS[type]}" ?`)) return
     }
     setActionLoading(true)
-    await addAction(prospect!.id, type, undefined, userEmail)
+    const error = await addAction(prospect.id, type)
     setActionLoading(false)
+    if (error) {
+      alert(`Erreur lors de l'enregistrement : ${(error as { message?: string }).message ?? 'Erreur inconnue'}`)
+    }
   }
 
   const breakdown = decomposeScore(prospect)
