@@ -7,8 +7,9 @@ import { ACTION_LABELS, ACTION_COLORS, decomposeScore } from '../types'
 interface Props {
   prospects: ProspectWithStatus[]
   actions: Action[]
-  addAction: (prospectId: number, type: ActionType, notes?: string) => Promise<unknown>
+  addAction: (prospectId: number, type: ActionType, notes?: string, userEmail?: string) => Promise<unknown>
   loading: boolean
+  userEmail?: string
 }
 
 const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] = [
@@ -19,7 +20,7 @@ const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] =
   { type: 'recrute', label: 'Recruté', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 ]
 
-export default function ProspectCard({ prospects, actions, addAction, loading }: Props) {
+export default function ProspectCard({ prospects, actions, addAction, loading, userEmail }: Props) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [actionLoading, setActionLoading] = useState(false)
@@ -46,7 +47,7 @@ export default function ProspectCard({ prospects, actions, addAction, loading }:
       if (!confirm(`Confirmer "${ACTION_LABELS[type]}" ?`)) return
     }
     setActionLoading(true)
-    await addAction(prospect!.id, type)
+    await addAction(prospect!.id, type, undefined, userEmail)
     setActionLoading(false)
   }
 

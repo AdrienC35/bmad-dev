@@ -7,12 +7,14 @@ export function useProspects() {
   const [actions, setActions] = useState<Action[]>([])
   const [loading, setLoading] = useState(true)
 
-  async function fetchAll() {
-    setLoading(true)
+  async function fetchAll(silent = false, isCancelled?: () => boolean) {
+    if (!silent) setLoading(true)
     const [prospectsRes, actionsRes] = await Promise.all([
       supabase.from('prospects').select('*').order('score_pertinence', { ascending: false }),
       supabase.from('actions').select('*').order('created_at', { ascending: false }),
     ])
+
+    if (isCancelled?.()) return
 
     if (prospectsRes.error) {
       console.error('Failed to fetch prospects:', prospectsRes.error)
@@ -47,20 +49,24 @@ export function useProspects() {
     setLoading(false)
   }
 
-  async function addAction(prospectId: number, type: ActionType, notes?: string) {
-    const { data: { user } } = await supabase.auth.getUser()
+  async function addAction(prospectId: number, type: ActionType, notes?: string, userEmail?: string) {
     const { error } = await supabase.from('actions').insert({
       prospect_id: prospectId,
       type,
       notes: notes ?? null,
-      created_by: user?.email ?? null,
+      created_by: userEmail ?? null,
     })
-    if (!error) await fetchAll()
+    if (!error) await fetchAll(true)
     return error
   }
 
   useEffect(() => {
-    fetchAll()
+    let cancelled = false
+    async function init() {
+      await fetchAll(false, () => cancelled)
+    }
+    init()
+    return () => { cancelled = true }
   }, [])
 
   return { prospects, actions, loading, refetch: fetchAll, addAction }

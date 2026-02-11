@@ -64,4 +64,7 @@ CREATE POLICY "prospects_select_auth" ON prospects
 CREATE POLICY "actions_select_auth" ON actions
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "actions_insert_auth" ON actions
-  FOR INSERT TO authenticated WITH CHECK (true);
+  FOR INSERT TO authenticated WITH CHECK (created_by = auth.jwt()->>'email');
+
+REVOKE ALL ON prospects FROM anon;
+REVOKE ALL ON actions FROM anon;

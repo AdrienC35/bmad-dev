@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Map, BarChart3, TreePine, LogOut } from 'lucide-react'
+import { LayoutDashboard, Map, BarChart3, AlertTriangle, TreePine, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 const tabs = [
   { to: '/', label: 'Pipeline', icon: LayoutDashboard },
   { to: '/carte', label: 'Carte', icon: Map },
   { to: '/suivi', label: 'Suivi', icon: BarChart3 },
+  { to: '/limitations', label: 'Limites', icon: AlertTriangle },
 ]
 
 interface Props {

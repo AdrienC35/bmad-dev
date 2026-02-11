@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import MapView from './components/MapView'
 import ProspectCard from './components/ProspectCard'
 import CampaignTracker from './components/CampaignTracker'
+import Limitations from './components/Limitations'
 
 function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; userEmail?: string }) {
   const { prospects, actions, loading, addAction } = useProspects()
@@ -30,6 +31,7 @@ function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; use
               actions={actions}
               addAction={addAction}
               loading={loading}
+              userEmail={userEmail}
             />
           }
         />
@@ -43,6 +45,7 @@ function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; use
             />
           }
         />
+        <Route path="/limitations" element={<Limitations />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

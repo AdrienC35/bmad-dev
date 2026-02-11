@@ -11,7 +11,15 @@ export function useAuth() {
       setUser(session?.user ?? null)
       setLoading(false)
     })
-    supabase.auth.getSession()
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error(error)
+        setLoading(false)
+      } else {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    })
 
     return () => subscription.unsubscribe()
   }, [])
