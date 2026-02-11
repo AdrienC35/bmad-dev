@@ -1,0 +1,42 @@
+import { NavLink } from 'react-router-dom'
+import { LayoutDashboard, Map, BarChart3, TreePine } from 'lucide-react'
+import type { ReactNode } from 'react'
+
+const tabs = [
+  { to: '/', label: 'Pipeline', icon: LayoutDashboard },
+  { to: '/carte', label: 'Carte', icon: Map },
+  { to: '/suivi', label: 'Suivi', icon: BarChart3 },
+]
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="bg-cooperl-700 text-white px-4 py-3 flex items-center gap-3 shadow-md">
+        <TreePine size={24} />
+        <h1 className="text-lg font-semibold tracking-tight">Bois & Bocage</h1>
+        <span className="text-cooperl-200 text-sm ml-1">Prospection</span>
+      </header>
+
+      <nav className="bg-white border-b px-4 flex gap-1">
+        {tabs.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                isActive
+                  ? 'border-cooperl-600 text-cooperl-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`
+            }
+          >
+            <Icon size={16} />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <main className="flex-1 p-4 max-w-7xl mx-auto w-full">{children}</main>
+    </div>
+  )
+}
