@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import type { ProspectWithStatus } from '../types'
+import { useProspectsContext } from '../contexts/ProspectsContext'
 
-interface Props {
-  prospects: ProspectWithStatus[]
-  loading: boolean
-}
+type GeoProspect = ProspectWithStatus & { latitude: number; longitude: number }
 
 const iconCache = new Map<string, L.DivIcon>()
 function markerIcon(score: number): L.DivIcon {
@@ -23,11 +22,12 @@ function markerIcon(score: number): L.DivIcon {
   return iconCache.get(color)!
 }
 
-export default function MapView({ prospects, loading }: Props) {
+export default function MapView() {
+  const { prospects, loading } = useProspectsContext()
   const navigate = useNavigate()
 
   const geoProspects = useMemo(
-    () => prospects.filter((p) => p.latitude != null && p.longitude != null),
+    () => prospects.filter((p): p is GeoProspect => p.latitude != null && p.longitude != null),
     [prospects]
   )
 
@@ -48,26 +48,26 @@ export default function MapView({ prospects, loading }: Props) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {geoProspects.map((p) => (
-            <Marker key={p.id} position={[p.latitude!, p.longitude!]} icon={markerIcon(p.score_pertinence)}>
-              <Popup>
-                <div className="text-sm space-y-1 min-w-[180px]">
-                  <div className="font-bold">{p.nom}</div>
-                  <div className="text-gray-600">{p.ville} ({p.departement})</div>
-                  <div>SAU: <strong>{p.sau_estimee_ha ? Math.round(p.sau_estimee_ha) : '-'} ha</strong></div>
-                  <div>Score: <strong>{p.score_pertinence}</strong></div>
-                  {p.telephone_elevage && <div>Tel: {p.telephone_elevage}</div>}
-                  {p.telephone_domicile && <div>Tel2: {p.telephone_domicile}</div>}
-                  <button
-                    onClick={() => navigate(`/prospect/${p.id}`)}
-                    className="mt-1 text-xs text-cooperl-600 hover:underline"
-                  >
-                    Voir la fiche
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          <MarkerClusterGroup chunkedLoading>
+            {geoProspects.map((p) => (
+              <Marker key={p.id} position={[p.latitude, p.longitude]} icon={markerIcon(p.score_pertinence)}>
+                <Popup>
+                  <div className="text-sm space-y-1 min-w-[180px]">
+                    <div className="font-bold">{p.nom}</div>
+                    <div className="text-gray-600">{p.ville} ({p.departement})</div>
+                    <div>SAU: <strong>{p.sau_estimee_ha ? Math.round(p.sau_estimee_ha) : '-'} ha</strong></div>
+                    <div>Score: <strong>{p.score_pertinence}</strong></div>
+                    <button
+                      onClick={() => navigate(`/prospect/${p.id}`)}
+                      className="mt-1 text-xs text-cooperl-600 hover:underline"
+                    >
+                      Voir la fiche →
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
         </MapContainer>
       </div>
     </div>

@@ -62,8 +62,8 @@ export default function Limitations() {
             Fonctionnalites non disponibles sur cette version
           </h2>
           <p className="text-amber-700 text-sm mt-1">
-            Cette application tourne sur une page statique (GitHub Pages) sans serveur.
-            Les fonctionnalites ci-dessous necessitent une infrastructure avec un serveur applicatif.
+            Cette application est un prototype deploye sur GitHub Pages avec Supabase comme backend.
+            Les fonctionnalites ci-dessous necessitent un serveur applicatif dedie.
           </p>
         </div>
       </div>

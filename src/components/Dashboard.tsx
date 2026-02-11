@@ -1,17 +1,13 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Download, Search, ChevronUp, ChevronDown, Leaf, Ruler, Award, Target } from 'lucide-react'
-import type { ProspectWithStatus } from '../types'
 import { ACTION_LABELS, ACTION_COLORS } from '../types'
-
-interface Props {
-  prospects: ProspectWithStatus[]
-  loading: boolean
-}
+import { useProspectsContext } from '../contexts/ProspectsContext'
 
 type SortKey = 'score_pertinence' | 'sau_estimee_ha' | 'nom' | 'departement' | 'zone_geographique'
 
-export default function Dashboard({ prospects, loading }: Props) {
+export default function Dashboard() {
+  const { prospects, loading } = useProspectsContext()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('score_pertinence')
@@ -102,11 +98,8 @@ export default function Dashboard({ prospects, loading }: Props) {
     a.href = url
     a.download = 'prospects_bois_bocage.csv'
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
   }
-
-  const SortIcon = ({ col }: { col: SortKey }) =>
-    sortKey === col ? (sortAsc ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : null
 
   if (loading) return <div className="text-center py-12 text-gray-400">Chargement...</div>
 
@@ -162,20 +155,20 @@ export default function Dashboard({ prospects, loading }: Props) {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="px-3 py-2 text-left cursor-pointer select-none" onClick={() => handleSort('nom')}>
-                <span className="flex items-center gap-1">Exploitation <SortIcon col="nom" /></span>
+                <span className="flex items-center gap-1">Exploitation <SortIcon col="nom" sortKey={sortKey} sortAsc={sortAsc} /></span>
               </th>
               <th className="px-3 py-2 text-left">Ville</th>
               <th className="px-3 py-2 text-center cursor-pointer select-none" onClick={() => handleSort('departement')}>
-                <span className="flex items-center justify-center gap-1">Dept <SortIcon col="departement" /></span>
+                <span className="flex items-center justify-center gap-1">Dept <SortIcon col="departement" sortKey={sortKey} sortAsc={sortAsc} /></span>
               </th>
               <th className="px-3 py-2 text-center cursor-pointer select-none" onClick={() => handleSort('zone_geographique')}>
-                <span className="flex items-center justify-center gap-1">Zone <SortIcon col="zone_geographique" /></span>
+                <span className="flex items-center justify-center gap-1">Zone <SortIcon col="zone_geographique" sortKey={sortKey} sortAsc={sortAsc} /></span>
               </th>
               <th className="px-3 py-2 text-right cursor-pointer select-none" onClick={() => handleSort('sau_estimee_ha')}>
-                <span className="flex items-center justify-end gap-1">SAU (ha) <SortIcon col="sau_estimee_ha" /></span>
+                <span className="flex items-center justify-end gap-1">SAU (ha) <SortIcon col="sau_estimee_ha" sortKey={sortKey} sortAsc={sortAsc} /></span>
               </th>
               <th className="px-3 py-2 text-center cursor-pointer select-none" onClick={() => handleSort('score_pertinence')}>
-                <span className="flex items-center justify-center gap-1">Score <SortIcon col="score_pertinence" /></span>
+                <span className="flex items-center justify-center gap-1">Score <SortIcon col="score_pertinence" sortKey={sortKey} sortAsc={sortAsc} /></span>
               </th>
               <th className="px-3 py-2 text-center">Statut</th>
             </tr>
@@ -222,6 +215,11 @@ function KpiCard({ icon, label, value, color }: { icon: React.ReactNode; label: 
       </div>
     </div>
   )
+}
+
+function SortIcon({ col, sortKey, sortAsc }: { col: SortKey; sortKey: SortKey; sortAsc: boolean }) {
+  if (sortKey !== col) return null
+  return sortAsc ? <ChevronUp size={14} /> : <ChevronDown size={14} />
 }
 
 function ScoreBadge({ score }: { score: number }) {

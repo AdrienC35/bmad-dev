@@ -1,15 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Phone, Mail, MapPin, TreePine } from 'lucide-react'
-import type { ProspectWithStatus, Action, ActionType } from '../types'
+import type { ActionType } from '../types'
 import { ACTION_LABELS, ACTION_COLORS, decomposeScore } from '../types'
-
-interface Props {
-  prospects: ProspectWithStatus[]
-  actions: Action[]
-  addAction: (prospectId: number, type: ActionType, notes?: string) => Promise<unknown>
-  loading: boolean
-}
+import { useProspectsContext } from '../contexts/ProspectsContext'
 
 const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] = [
   { type: 'appele', label: 'Appelé', className: 'bg-blue-500 hover:bg-blue-600 text-white' },
@@ -19,15 +13,19 @@ const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] =
   { type: 'recrute', label: 'Recruté', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 ]
 
-export default function ProspectCard({ prospects, actions, addAction, loading }: Props) {
+export default function ProspectCard() {
+  const { prospects, actions, addAction, loading } = useProspectsContext()
   const { id } = useParams()
   const navigate = useNavigate()
   const [actionLoading, setActionLoading] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<ActionType | null>(null)
 
-  const prospect = prospects.find((p) => p.id === Number(id))
+  const numericId = id ? parseInt(id, 10) : NaN
+  const prospectMap = useMemo(() => new Map(prospects.map((p) => [p.id, p])), [prospects])
+  const prospect = prospectMap.get(numericId)
   const prospectActions = useMemo(
-    () => actions.filter((a) => a.prospect_id === Number(id)),
-    [actions, id]
+    () => actions.filter((a) => a.prospect_id === numericId),
+    [actions, numericId]
   )
 
   if (loading) return <div className="text-center py-12 text-gray-400">Chargement...</div>
@@ -41,16 +39,22 @@ export default function ProspectCard({ prospects, actions, addAction, loading }:
     )
   }
 
-  async function handleAction(type: ActionType) {
+  async function executeAction(type: ActionType) {
     if (!prospect) return
-    if (type === 'refus' || type === 'recrute') {
-      if (!confirm(`Confirmer "${ACTION_LABELS[type]}" ?`)) return
-    }
     setActionLoading(true)
     const error = await addAction(prospect.id, type)
     setActionLoading(false)
     if (error) {
       alert(`Erreur lors de l'enregistrement : ${(error as { message?: string }).message ?? 'Erreur inconnue'}`)
+    }
+  }
+
+  function handleAction(type: ActionType) {
+    if (!prospect) return
+    if (type === 'refus' || type === 'recrute') {
+      setConfirmAction(type)
+    } else {
+      executeAction(type)
     }
   }
 
@@ -192,6 +196,32 @@ export default function ProspectCard({ prospects, actions, addAction, loading }:
           </div>
         )}
       </div>
+
+      {/* Confirmation modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="font-semibold text-lg">Confirmer l'action</h3>
+            <p className="text-gray-600">
+              Marquer <strong>{prospect.nom}</strong> comme <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${ACTION_COLORS[confirmAction]}`}>{ACTION_LABELS[confirmAction]}</span> ?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => { const a = confirmAction; setConfirmAction(null); executeAction(a) }}
+                className="px-4 py-2 rounded-lg text-sm bg-cooperl-600 text-white hover:bg-cooperl-700 transition-colors"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
-import { useProspects } from './hooks/useProspects'
+import { ProspectsProvider } from './contexts/ProspectsContext'
 import Login from './components/Login'
 import Layout from './components/Layout'
 import Dashboard from './components/Dashboard'
@@ -10,44 +10,19 @@ import CampaignTracker from './components/CampaignTracker'
 import Limitations from './components/Limitations'
 
 function AuthenticatedApp({ onSignOut, userEmail }: { onSignOut: () => void; userEmail?: string }) {
-  const { prospects, actions, loading, addAction } = useProspects()
-
   return (
-    <Layout onSignOut={onSignOut} userEmail={userEmail}>
-      <Routes>
-        <Route
-          path="/"
-          element={<Dashboard prospects={prospects} loading={loading} />}
-        />
-        <Route
-          path="/carte"
-          element={<MapView prospects={prospects} loading={loading} />}
-        />
-        <Route
-          path="/prospect/:id"
-          element={
-            <ProspectCard
-              prospects={prospects}
-              actions={actions}
-              addAction={addAction}
-              loading={loading}
-            />
-          }
-        />
-        <Route
-          path="/suivi"
-          element={
-            <CampaignTracker
-              prospects={prospects}
-              actions={actions}
-              loading={loading}
-            />
-          }
-        />
-        <Route path="/limitations" element={<Limitations />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <ProspectsProvider>
+      <Layout onSignOut={onSignOut} userEmail={userEmail}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/carte" element={<MapView />} />
+          <Route path="/prospect/:id" element={<ProspectCard />} />
+          <Route path="/suivi" element={<CampaignTracker />} />
+          <Route path="/limitations" element={<Limitations />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </ProspectsProvider>
   )
 }
 

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { TreePine, LogIn } from 'lucide-react'
 
+import type { AuthError } from '@supabase/supabase-js'
+
 interface Props {
-  onLogin: (email: string, password: string) => Promise<unknown>
+  onLogin: (email: string, password: string) => Promise<AuthError | null>
 }
 
 export default function Login({ onLogin }: Props) {

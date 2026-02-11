@@ -5,7 +5,10 @@ import App from './App'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root')
+if (!root) throw new Error('Root element #root not found')
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />

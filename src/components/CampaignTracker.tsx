@@ -1,20 +1,16 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Target, TrendingUp, Clock } from 'lucide-react'
-import type { ProspectWithStatus, Action, ActionType } from '../types'
+import type { ActionType } from '../types'
 import { ACTION_LABELS, ACTION_COLORS } from '../types'
-
-interface Props {
-  prospects: ProspectWithStatus[]
-  actions: Action[]
-  loading: boolean
-}
+import { useProspectsContext } from '../contexts/ProspectsContext'
 
 const OBJECTIF = 40
 
 const STATUT_ORDER: (ActionType | 'en_attente')[] = ['recrute', 'interesse', 'appele', 'rappeler', 'refus', 'en_attente']
 
-export default function CampaignTracker({ prospects, actions, loading }: Props) {
+export default function CampaignTracker() {
+  const { prospects, actions, loading } = useProspectsContext()
   const navigate = useNavigate()
 
   const stats = useMemo(() => {
@@ -28,12 +24,17 @@ export default function CampaignTracker({ prospects, actions, loading }: Props) 
   const recrutes = stats.recrute ?? 0
   const pctObjectif = Math.min(100, Math.round((recrutes / OBJECTIF) * 100))
 
+  const prospectMap = useMemo(
+    () => new Map(prospects.map((p) => [p.id, p])),
+    [prospects]
+  )
+
   const recentActions = useMemo(
     () => actions.slice(0, 20).map((a) => ({
       ...a,
-      prospect: prospects.find((p) => p.id === a.prospect_id),
+      prospect: prospectMap.get(a.prospect_id),
     })),
-    [actions, prospects]
+    [actions, prospectMap]
   )
 
   if (loading) return <div className="text-center py-12 text-gray-400">Chargement...</div>
