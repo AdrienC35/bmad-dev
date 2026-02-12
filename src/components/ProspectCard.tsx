@@ -4,6 +4,7 @@ import { ArrowLeft, Phone, Mail, MapPin, TreePine } from 'lucide-react'
 import type { ActionType } from '../types'
 import { ACTION_LABELS, ACTION_COLORS, decomposeScore } from '../types'
 import { useProspectsContext } from '../contexts/ProspectsContext'
+import SalesJourney from './SalesJourney'
 
 const ACTION_BUTTONS: { type: ActionType; label: string; className: string }[] = [
   { type: 'appele', label: 'Appelé', className: 'bg-blue-500 hover:bg-blue-600 text-white' },
@@ -161,6 +162,14 @@ export default function ProspectCard() {
           )}
         </div>
       </div>
+
+      {/* Parcours commercial */}
+      <SalesJourney
+        prospect={prospect}
+        actions={actions}
+        onSendDoc={async (type, notes) => { await addAction(prospect.id, type, notes) }}
+        disabled={actionLoading}
+      />
 
       {/* Actions */}
       <div className="bg-white rounded-lg shadow p-5 space-y-3">

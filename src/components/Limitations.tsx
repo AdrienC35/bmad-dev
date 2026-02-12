@@ -38,9 +38,9 @@ const limitations = [
   },
   {
     icon: RefreshCw,
-    title: 'Synchronisation automatique avec le SI Cooperl',
+    title: 'Synchronisation automatique avec le SI',
     description:
-      "Recuperer automatiquement les donnees a jour depuis le systeme d'information (adherents, tonnages, certifications, SAU).",
+      "Recuperer automatiquement les donnees a jour depuis le systeme d'information de la cooperative (adherents, tonnages, certifications, SAU).",
     impact: 'Les donnees sont figees au moment du chargement initial.',
   },
   {
