@@ -21,7 +21,7 @@ export function useProspects() {
     setError(null)
     const [prospectsRes, actionsRes] = await Promise.all([
       supabase.from('prospects').select(PROSPECT_COLUMNS).returns<Prospect[]>().order('score_pertinence', { ascending: false }).limit(500).abortSignal(controller.signal),
-      supabase.from('actions').select(ACTION_COLUMNS).returns<Action[]>().order('created_at', { ascending: false }).limit(1000).abortSignal(controller.signal),
+      supabase.from('actions').select(ACTION_COLUMNS).returns<Action[]>().order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000).abortSignal(controller.signal),
     ])
 
     if (controller.signal.aborted) return
