@@ -1,13 +1,22 @@
 # Bois & Bocage
 
-Outil de prospection commerciale pour le service Bois & Bocage. Permet de qualifier, contacter et suivre les prospects agricoles pour le diagnostic haies et les credits carbone.
+Outil de prospection commerciale pour un service bois-bocage en cooperative agricole. Permet de qualifier, contacter et suivre les prospects agricoles pour le diagnostic haies et les credits carbone.
 
 **[Demo live](https://adrienc35.github.io/bmad-dev/)**
+
+> **Note** : Les donnees presentees sont **entierement fictives** (noms, adresses, telephones, emails, exploitations). Aucune donnee reelle n'est exposee.
 
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-2.49-3FCF8E?logo=supabase&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss&logoColor=white)
+
+## Compte demo
+
+| | |
+|---|---|
+| **Email** | `demo@bois-bocage.fr` |
+| **Mot de passe** | `demo-bois-bocage-2024` |
 
 ## Fonctionnalites
 
@@ -41,11 +50,23 @@ npm install
 cp .env.example .env
 # Remplir VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY
 
-# 4. Lancer
+# 4. Initialiser la base de donnees (schema + donnees fictives + user demo)
+SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... node supabase/setup.mjs
+
+# 5. Lancer
 npm run dev
 ```
 
 L'app tourne sur `http://localhost:5173`.
+
+### Alternative : setup manuel
+
+Si vous preferez initialiser Supabase manuellement :
+
+1. Aller dans **Supabase Dashboard > SQL Editor**
+2. Coller et executer `supabase/schema.sql` (creation des tables)
+3. Coller et executer `supabase/seed.sql` (200 prospects fictifs)
+4. Aller dans **Authentication > Users > Add user** : `demo@bois-bocage.fr` / `demo-bois-bocage-2024`
 
 ## Scripts
 
@@ -78,6 +99,11 @@ src/
 │   └── supabase.ts             # Client Supabase
 └── types/
     └── index.ts                # Types + constantes metier
+
+supabase/
+├── schema.sql                  # Schema PostgreSQL (tables + RLS)
+├── seed.sql                    # 200 prospects fictifs + actions demo
+└── setup.mjs                   # Script d'initialisation automatique
 ```
 
 ## Base de donnees
@@ -94,15 +120,15 @@ prospects (200 rows, read-only)     actions (append-only)
 └── tc_referent                     └── created_by (email JWT)
 ```
 
-Le schema SQL complet est dans [`supabase/schema.sql`](./supabase/schema.sql).
+Les donnees injectees par `seed.sql` sont **100% fictives** : noms d'exploitations inventes, adresses generees, numeros de telephone aleatoires. Aucune donnee reelle d'agriculteur n'est presente.
 
 ## Variables d'environnement
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_SUPABASE_URL` | URL du projet Supabase |
-| `VITE_SUPABASE_ANON_KEY` | Cle publique Supabase (anon) |
+| Variable | Description | Ou la trouver |
+|----------|-------------|---------------|
+| `VITE_SUPABASE_URL` | URL du projet Supabase | Dashboard > Settings > API |
+| `VITE_SUPABASE_ANON_KEY` | Cle publique Supabase (anon) | Dashboard > Settings > API |
 
 ## Licence
 
-Usage interne.
+MIT
